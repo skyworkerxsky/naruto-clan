@@ -144,10 +144,23 @@
     return data.extensionOn !== false && data.enabled !== false;
   }
 
+  function publishSkip(data) {
+    const on = data.extensionOn !== false && data.skipIntro !== false;
+    document.documentElement.dataset.n2x2Skip = on ? '1' : '0';
+  }
+
+  const defaults = { extensionOn: true, enabled: true, skipIntro: true };
+
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || (!changes.extensionOn && !changes.enabled)) return;
-    chrome.storage.local.get({ extensionOn: true, enabled: true }).then((data) => apply(voiceWanted(data)));
+    if (area !== 'local' || (!changes.extensionOn && !changes.enabled && !changes.skipIntro)) return;
+    chrome.storage.local.get(defaults).then((data) => {
+      apply(voiceWanted(data));
+      publishSkip(data);
+    });
   });
 
-  chrome.storage.local.get({ extensionOn: true, enabled: true }).then((data) => apply(voiceWanted(data)));
+  chrome.storage.local.get(defaults).then((data) => {
+    apply(voiceWanted(data));
+    publishSkip(data);
+  });
 })();
