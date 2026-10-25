@@ -120,6 +120,15 @@
     return extensionOn && enabled;
   }
 
+  function rememberPage() {
+    const match = location.pathname.match(/\/season-(\d+)\/episode-(\d+)/i);
+    if (!match) return;
+    chrome.storage.local.set({
+      lastSeason: Number(match[1]),
+      lastEpisode: Number(match[2]),
+    });
+  }
+
   function run() {
     if (!voiceOn()) {
       patchPlayer2Iframes();
@@ -161,6 +170,7 @@
     extensionOn = data.extensionOn !== false;
     enabled = data.enabled !== false;
     settingsReady = true;
+    rememberPage();
     arm();
   }
 

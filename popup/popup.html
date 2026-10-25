@@ -6,7 +6,10 @@
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-  <h1>naruto-clan.net</h1>
+  <div class="header">
+    <h1>naruto-clan.net</h1>
+    <span id="version" class="version"></span>
+  </div>
   <button id="toggle-extension" type="button">Вкл</button>
 
   <div class="row">
@@ -17,6 +20,11 @@
     <span>Пропустить заставку</span>
     <button id="toggle-skip" type="button" role="switch" aria-label="Пропустить заставку"></button>
   </div>
+
+  <footer class="footer">
+    <div>Последняя просмотренная серия:</div>
+    <div id="last-episode">Сезон — / Серия —</div>
+  </footer>
 
   <script src="popup.js"></script>
 </body>

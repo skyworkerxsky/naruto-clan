@@ -151,6 +151,21 @@
 
   const defaults = { extensionOn: true, enabled: true, skipIntro: true };
 
+  let rememberedEpisode = '';
+
+  function rememberPlaying() {
+    const season = Number(new URL(location.href).searchParams.get('season'));
+    const episode = Number(new URL(location.href).searchParams.get('episode'));
+    if (!Number.isInteger(season) || !Number.isInteger(episode) || season < 1 || episode < 1) return;
+    const key = `${season}:${episode}`;
+    if (key === rememberedEpisode) return;
+    rememberedEpisode = key;
+    chrome.storage.local.set({ lastSeason: season, lastEpisode: episode });
+  }
+
+  rememberPlaying();
+  setInterval(rememberPlaying, 1000);
+
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local' || (!changes.extensionOn && !changes.enabled && !changes.skipIntro)) return;
     chrome.storage.local.get(defaults).then((data) => {

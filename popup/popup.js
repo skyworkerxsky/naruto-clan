@@ -1,8 +1,10 @@
+document.getElementById('version').textContent = chrome.runtime.getManifest().version;
+
 const extensionBtn = document.getElementById('toggle-extension');
 const voiceBtn = document.getElementById('toggle-voice');
 const skipBtn = document.getElementById('toggle-skip');
 
-const defaults = { extensionOn: true, enabled: true, skipIntro: true };
+const defaults = { extensionOn: true, enabled: true, skipIntro: true, lastSeason: null, lastEpisode: null };
 
 function paintSwitch(button, on) {
   button.classList.toggle('is-on', on);
@@ -19,6 +21,13 @@ function paint(data) {
   paintSwitch(voiceBtn, data.enabled !== false);
   paintSwitch(skipBtn, data.skipIntro !== false);
   document.body.classList.toggle('extension-off', !extensionOn);
+
+  const season = data.lastSeason;
+  const episode = data.lastEpisode;
+  document.getElementById('last-episode').textContent =
+    Number.isInteger(season) && Number.isInteger(episode)
+      ? `Сезон ${season} / Серия ${episode}`
+      : 'Сезон — / Серия —';
 }
 
 async function read() {
@@ -42,7 +51,7 @@ skipBtn.addEventListener('click', async () => {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
-  if (!changes.extensionOn && !changes.enabled && !changes.skipIntro) return;
+  if (!changes.extensionOn && !changes.enabled && !changes.skipIntro && !changes.lastSeason && !changes.lastEpisode) return;
   read().then(paint);
 });
 
