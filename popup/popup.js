@@ -1,18 +1,23 @@
 const extensionBtn = document.getElementById('toggle-extension');
 const voiceBtn = document.getElementById('toggle-voice');
+const skipBtn = document.getElementById('toggle-skip');
 
-const defaults = { extensionOn: true, enabled: true };
+const defaults = { extensionOn: true, enabled: true, skipIntro: true };
+
+function paintSwitch(button, on) {
+  button.classList.toggle('is-on', on);
+  button.setAttribute('aria-checked', on ? 'true' : 'false');
+}
 
 function paint(data) {
   const extensionOn = data.extensionOn !== false;
-  const voiceOn = data.enabled !== false;
 
   extensionBtn.classList.toggle('is-on', extensionOn);
   extensionBtn.textContent = extensionOn ? 'Вкл' : 'Выкл';
   extensionBtn.setAttribute('aria-pressed', extensionOn ? 'true' : 'false');
 
-  voiceBtn.classList.toggle('is-on', voiceOn);
-  voiceBtn.setAttribute('aria-checked', voiceOn ? 'true' : 'false');
+  paintSwitch(voiceBtn, data.enabled !== false);
+  paintSwitch(skipBtn, data.skipIntro !== false);
   document.body.classList.toggle('extension-off', !extensionOn);
 }
 
@@ -30,9 +35,14 @@ voiceBtn.addEventListener('click', async () => {
   await chrome.storage.local.set({ enabled: data.enabled === false });
 });
 
+skipBtn.addEventListener('click', async () => {
+  const data = await read();
+  await chrome.storage.local.set({ skipIntro: data.skipIntro === false });
+});
+
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
-  if (!changes.extensionOn && !changes.enabled) return;
+  if (!changes.extensionOn && !changes.enabled && !changes.skipIntro) return;
   read().then(paint);
 });
 
