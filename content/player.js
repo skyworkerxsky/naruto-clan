@@ -1,0 +1,153 @@
+(() => {
+  // Alloha / online-serial.com: [data-select^="translationType"] → button.select__drop-item
+  // 2x2 = data-id="t1" (id_translation=1); default often «Дублированный» (t66)
+  const TARGET = /^(?:2x2|2х2)$/i;
+  const LOG = (...args) => console.debug('[2x2-voice:player]', ...args);
+  const RETRY_MS = 350;
+  const RETRY_FOR_MS = 20000;
+
+  let enabled = true;
+  let startedAt = 0;
+  let settled = false;
+  let interval = null;
+  let obs = null;
+
+  function textOf(el) {
+    return (el.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function translationRoot() {
+    return (
+      document.querySelector('.select[data-select^="translationType"]') ||
+      document.querySelector('[data-select*="translation"]')
+    );
+  }
+
+  function currentLabel(root) {
+    const label = root?.querySelector('.select__item-text');
+    return label ? textOf(label) : '';
+  }
+
+  function find2x2Button(root) {
+    if (!root) return null;
+    const items = [...root.querySelectorAll('button.select__drop-item')];
+    return (
+      items.find((btn) => TARGET.test(textOf(btn))) ||
+      items.find((btn) => btn.getAttribute('data-id') === 't1') ||
+      null
+    );
+  }
+
+  function is2x2Active(root) {
+    const label = currentLabel(root);
+    if (TARGET.test(label)) return true;
+    const btn = find2x2Button(root);
+    return !!(btn && btn.classList.contains('active'));
+  }
+
+  function select2x2() {
+    if (!enabled) return false;
+
+    const root = translationRoot();
+    if (!root) {
+      LOG('no translation select yet', location.host);
+      return false;
+    }
+
+    if (is2x2Active(root)) {
+      LOG('already 2x2:', currentLabel(root));
+      return true;
+    }
+
+    const btn = find2x2Button(root);
+    if (!btn) {
+      LOG('2x2 option missing; options=', [...root.querySelectorAll('.select__drop-item')].map(textOf));
+      return false;
+    }
+
+    btn.click();
+    LOG('clicked 2x2', btn.getAttribute('data-id'), textOf(btn));
+    return true;
+  }
+
+  function tick() {
+    if (!enabled) return false;
+    if (select2x2()) {
+      if (Date.now() - startedAt > 1500) settled = true;
+      return true;
+    }
+    return false;
+  }
+
+  function stop() {
+    if (interval) {
+      clearInterval(interval);
+      interval = null;
+    }
+    obs?.disconnect();
+    obs = null;
+    settled = true;
+    LOG('stopped');
+  }
+
+  function start() {
+    stop();
+    enabled = true;
+    startedAt = Date.now();
+    settled = false;
+    LOG('start', location.href.slice(0, 160));
+    tick();
+
+    interval = setInterval(() => {
+      if (!enabled || Date.now() - startedAt > RETRY_FOR_MS) {
+        clearInterval(interval);
+        interval = null;
+        return;
+      }
+      if (!settled) tick();
+      else if (!is2x2Active(translationRoot())) {
+        settled = false;
+        startedAt = Date.now();
+        tick();
+      }
+    }, RETRY_MS);
+
+    obs = new MutationObserver(() => {
+      if (!enabled) return;
+      const root = translationRoot();
+      if (!root) return;
+      if (!is2x2Active(root)) {
+        settled = false;
+        startedAt = Date.now();
+        tick();
+      }
+    });
+    obs.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+  }
+
+  function apply(next) {
+    const on = next !== false;
+    if (on) start();
+    else {
+      enabled = false;
+      stop();
+    }
+  }
+
+  function voiceWanted(data) {
+    return data.extensionOn !== false && data.enabled !== false;
+  }
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || (!changes.extensionOn && !changes.enabled)) return;
+    chrome.storage.local.get({ extensionOn: true, enabled: true }).then((data) => apply(voiceWanted(data)));
+  });
+
+  chrome.storage.local.get({ extensionOn: true, enabled: true }).then((data) => apply(voiceWanted(data)));
+})();

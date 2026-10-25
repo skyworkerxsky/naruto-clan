@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Naruto Clan — озвучка 2x2",
+  "version": "1.5.0",
+  "description": "В Плеере 2 на naruto-clan.net автоматически выбирает озвучку 2x2 вместо Дублированный.",
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "Озвучка 2x2",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "*://naruto-clan.net/*",
+    "*://*.naruto-clan.net/*",
+    "*://online-serial.com/*",
+    "*://*.online-serial.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://naruto-clan.net/*",
+        "*://*.naruto-clan.net/*"
+      ],
+      "js": ["content/site.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://online-serial.com/*",
+        "*://*.online-serial.com/*"
+      ],
+      "js": ["content/player.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
