@@ -149,7 +149,12 @@
     document.documentElement.dataset.n2x2Skip = on ? '1' : '0';
   }
 
-  const defaults = { extensionOn: true, enabled: true, skipIntro: true };
+  function publishSkipCredits(data) {
+    const on = data.extensionOn !== false && data.skipCredits !== false;
+    document.documentElement.dataset.n2x2SkipCredits = on ? '1' : '0';
+  }
+
+  const defaults = { extensionOn: true, enabled: true, skipIntro: true, skipCredits: true };
 
   let rememberedEpisode = '';
 
@@ -167,15 +172,17 @@
   setInterval(rememberPlaying, 1000);
 
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || (!changes.extensionOn && !changes.enabled && !changes.skipIntro)) return;
+    if (area !== 'local' || (!changes.extensionOn && !changes.enabled && !changes.skipIntro && !changes.skipCredits)) return;
     chrome.storage.local.get(defaults).then((data) => {
       apply(voiceWanted(data));
       publishSkip(data);
+      publishSkipCredits(data);
     });
   });
 
   chrome.storage.local.get(defaults).then((data) => {
     apply(voiceWanted(data));
     publishSkip(data);
+    publishSkipCredits(data);
   });
 })();
