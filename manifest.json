@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Naruto Clan — озвучка 2x2",
-  "version": "1.9.1",
+  "version": "1.10.1",
   "description": "В Плеере 2 на naruto-clan.net автоматически выбирает озвучку 2x2, пропускает заставку и титры, включает следующую серию автоматически.",
   "permissions": ["storage"],
   "action": {

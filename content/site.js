@@ -129,6 +129,54 @@
     });
   }
 
+  // Сообщение от content/player.js: плеер переключил серию внутри iframe.
+  // Обновляем URL/title/h1/ссылки, чтобы F5 и бейдж показывали актуальную серию.
+  const SE_RE = /(\d+)\s+сезон\s+(\d+)\s+серия/i;
+
+  function updateParentPage(season, episode) {
+    if (!Number.isInteger(season) || !Number.isInteger(episode)) return;
+    // Только на страницах серий — не трогаем главную/категории
+    if (!/\/season-\d+\/episode-\d+/i.test(location.pathname)) return;
+
+    const newPath = `/season-${season}/episode-${episode}`;
+    if (location.pathname !== newPath) {
+      history.replaceState(null, '', newPath);
+      LOG('URL →', newPath);
+    }
+
+    document.title = document.title.replace(SE_RE, `${season} сезон ${episode} серия`);
+
+    const h1 = document.querySelector('h1');
+    if (h1) h1.textContent = h1.textContent.replace(SE_RE, `${season} сезон ${episode} серия`);
+
+    // Текстовые узлы с паттерном «N сезон M серия» (хлебные крошки и прочее)
+    const walkerRoot = document.querySelector('.breadcrumb, .breadcrumbs, .post_meta, footer') || document.body;
+    const walker = document.createTreeWalker(walkerRoot, NodeFilter.SHOW_TEXT, null);
+    let n;
+    while ((n = walker.nextNode())) {
+      if (n.nodeValue && SE_RE.test(n.nodeValue)) {
+        n.nodeValue = n.nodeValue.replace(SE_RE, `${season} сезон ${episode} серия`);
+      }
+    }
+
+    // Ссылки «Предыдущая серия» / «Следующая серия»
+    for (const a of document.querySelectorAll('a')) {
+      const text = (a.textContent || '').trim();
+      if (/предыдущая\s+серия/i.test(text)) {
+        if (episode > 1) a.href = `${location.origin}/season-${season}/episode-${episode - 1}`;
+      } else if (/следующая\s+серия/i.test(text)) {
+        a.href = `${location.origin}/season-${season}/episode-${episode + 1}`;
+      }
+    }
+
+    rememberPage();
+  }
+
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg?.type !== 'episodeChanged') return;
+    updateParentPage(msg.season, msg.episode);
+  });
+
   function run() {
     if (!voiceOn()) {
       patchPlayer2Iframes();

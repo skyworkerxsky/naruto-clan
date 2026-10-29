@@ -23,4 +23,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
   paintBadge(changes.extensionOn.newValue !== false);
 });
 
+// Проброс сообщений из iframe плеера (online-serial.com) в top-frame родительской
+// страницы (naruto-clan.net): контент-скрипты не слышат друг друга напрямую.
+chrome.runtime.onMessage.addListener((msg, sender) => {
+  if (msg?.type !== 'episodeChanged' || !sender.tab) return;
+  chrome.tabs.sendMessage(sender.tab.id, msg, { frameId: 0 }).catch(() => {});
+});
+
 syncBadge();

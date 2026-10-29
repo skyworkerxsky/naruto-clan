@@ -177,6 +177,7 @@
     const key = `${season}:${episode}`;
     if (key === rememberedEpisode) return;
     rememberedEpisode = key;
+    chrome.runtime.sendMessage({ type: 'episodeChanged', season, episode }).catch(() => {});
     chrome.storage.local.set({ lastSeason: season, lastEpisode: episode });
   }
 
