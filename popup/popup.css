@@ -51,7 +51,8 @@ h1 {
 #toggle-extension:focus-visible,
 #toggle-voice:focus-visible,
 #toggle-skip:focus-visible,
-#toggle-skip-credits:focus-visible {
+#toggle-skip-credits:focus-visible,
+#toggle-auto-next:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 2px;
 }
@@ -73,7 +74,8 @@ body.extension-off .row {
 
 #toggle-voice,
 #toggle-skip,
-#toggle-skip-credits {
+#toggle-skip-credits,
+#toggle-auto-next {
   position: relative;
   flex: none;
   width: 42px;
@@ -87,7 +89,8 @@ body.extension-off .row {
 
 #toggle-voice::after,
 #toggle-skip::after,
-#toggle-skip-credits::after {
+#toggle-skip-credits::after,
+#toggle-auto-next::after {
   content: "";
   position: absolute;
   top: 3px;
@@ -100,13 +103,15 @@ body.extension-off .row {
 
 #toggle-voice.is-on,
 #toggle-skip.is-on,
-#toggle-skip-credits.is-on {
+#toggle-skip-credits.is-on,
+#toggle-auto-next.is-on {
   background: #2e9e4f;
 }
 
 #toggle-voice.is-on::after,
 #toggle-skip.is-on::after,
-#toggle-skip-credits.is-on::after {
+#toggle-skip-credits.is-on::after,
+#toggle-auto-next.is-on::after {
   left: 21px;
 }
 

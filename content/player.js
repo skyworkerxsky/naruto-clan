@@ -154,13 +154,25 @@
     document.documentElement.dataset.n2x2SkipCredits = on ? '1' : '0';
   }
 
-  const defaults = { extensionOn: true, enabled: true, skipIntro: true, skipCredits: true };
+  function publishAutoNext(data) {
+    const on = data.extensionOn !== false && data.autoNext !== false;
+    document.documentElement.dataset.n2x2AutoNext = on ? '1' : '0';
+  }
+
+  const defaults = { extensionOn: true, enabled: true, skipIntro: true, skipCredits: true, autoNext: true };
 
   let rememberedEpisode = '';
 
   function rememberPlaying() {
-    const season = Number(new URL(location.href).searchParams.get('season'));
-    const episode = Number(new URL(location.href).searchParams.get('episode'));
+    // auto-next-main.js (MAIN world) публикует фактическую серию в dataset —
+    // URL iframe не меняется при автопереходе внутри плеера
+    const root = document.documentElement.dataset;
+    let season = Number(root.n2x2Season);
+    let episode = Number(root.n2x2Episode);
+    if (!Number.isInteger(episode) || episode < 1) {
+      season = Number(new URL(location.href).searchParams.get('season'));
+      episode = Number(new URL(location.href).searchParams.get('episode'));
+    }
     if (!Number.isInteger(season) || !Number.isInteger(episode) || season < 1 || episode < 1) return;
     const key = `${season}:${episode}`;
     if (key === rememberedEpisode) return;
@@ -172,11 +184,12 @@
   setInterval(rememberPlaying, 1000);
 
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || (!changes.extensionOn && !changes.enabled && !changes.skipIntro && !changes.skipCredits)) return;
+    if (area !== 'local' || (!changes.extensionOn && !changes.enabled && !changes.skipIntro && !changes.skipCredits && !changes.autoNext)) return;
     chrome.storage.local.get(defaults).then((data) => {
       apply(voiceWanted(data));
       publishSkip(data);
       publishSkipCredits(data);
+      publishAutoNext(data);
     });
   });
 
@@ -184,5 +197,6 @@
     apply(voiceWanted(data));
     publishSkip(data);
     publishSkipCredits(data);
+    publishAutoNext(data);
   });
 })();

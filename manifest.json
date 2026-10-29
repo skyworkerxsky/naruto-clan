@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Naruto Clan — озвучка 2x2",
-  "version": "1.8.0",
-  "description": "В Плеере 2 на naruto-clan.net автоматически выбирает озвучку 2x2, пропускает заставку и титры.",
+  "version": "1.9.1",
+  "description": "В Плеере 2 на naruto-clan.net автоматически выбирает озвучку 2x2, пропускает заставку и титры, включает следующую серию автоматически.",
   "permissions": ["storage"],
   "action": {
     "default_title": "Озвучка 2x2",
@@ -53,6 +53,16 @@
         "*://*.online-serial.com/*"
       ],
       "js": ["content/skip-main.js"],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://online-serial.com/*",
+        "*://*.online-serial.com/*"
+      ],
+      "js": ["content/auto-next-main.js"],
       "run_at": "document_idle",
       "all_frames": true,
       "world": "MAIN"

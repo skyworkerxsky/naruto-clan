@@ -4,8 +4,9 @@ const extensionBtn = document.getElementById('toggle-extension');
 const voiceBtn = document.getElementById('toggle-voice');
 const skipBtn = document.getElementById('toggle-skip');
 const skipCreditsBtn = document.getElementById('toggle-skip-credits');
+const autoNextBtn = document.getElementById('toggle-auto-next');
 
-const defaults = { extensionOn: true, enabled: true, skipIntro: true, skipCredits: true, lastSeason: null, lastEpisode: null };
+const defaults = { extensionOn: true, enabled: true, skipIntro: true, skipCredits: true, autoNext: true, lastSeason: null, lastEpisode: null };
 
 function paintSwitch(button, on) {
   button.classList.toggle('is-on', on);
@@ -22,6 +23,7 @@ function paint(data) {
   paintSwitch(voiceBtn, data.enabled !== false);
   paintSwitch(skipBtn, data.skipIntro !== false);
   paintSwitch(skipCreditsBtn, data.skipCredits !== false);
+  paintSwitch(autoNextBtn, data.autoNext !== false);
   document.body.classList.toggle('extension-off', !extensionOn);
 
   const season = data.lastSeason;
@@ -56,9 +58,14 @@ skipCreditsBtn.addEventListener('click', async () => {
   await chrome.storage.local.set({ skipCredits: data.skipCredits === false });
 });
 
+autoNextBtn.addEventListener('click', async () => {
+  const data = await read();
+  await chrome.storage.local.set({ autoNext: data.autoNext === false });
+});
+
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local') return;
-  if (!changes.extensionOn && !changes.enabled && !changes.skipIntro && !changes.skipCredits && !changes.lastSeason && !changes.lastEpisode) return;
+  if (!changes.extensionOn && !changes.enabled && !changes.skipIntro && !changes.skipCredits && !changes.autoNext && !changes.lastSeason && !changes.lastEpisode) return;
   read().then(paint);
 });
 
