@@ -1,3 +1,4 @@
+// DEFAULTS chrome.storage.local — синхронизировать в site.js, player.js, popup.js, background.js
 document.getElementById('version').textContent = chrome.runtime.getManifest().version;
 
 const extensionBtn = document.getElementById('toggle-extension');

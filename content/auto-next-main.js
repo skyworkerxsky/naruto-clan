@@ -3,7 +3,8 @@
   // Механика плеера: window.autoplayNext = 1 добавляет autoplay=1 в запрос файла
   // следующей серии; клик по скрытой кнопке [data-id="N+1"] в селекторе серий
   // переключает серию без перезагрузки страницы.
-  const LOG = (...args) => console.debug('[2x2-voice:auto-next]', ...args);
+  let DEBUG = false;
+  const LOG = (...args) => { if (DEBUG) console.debug('[2x2-voice:auto-next]', ...args); };
   const MIN_CONTENT_DURATION = 300; // серии ~20 мин, реклама короче — отсекаем ended у рекламы
   const PLAY_RETRY_MS = 500;
   const PLAY_RETRY_FOR_MS = 20000; // после смены серии может сначала идти реклама
@@ -97,4 +98,16 @@
 
   setInterval(bind, 1000);
   bind();
+
+  // MAIN world не имеет доступа к chrome.storage — читаем debug только если API доступен
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.get({ debug: false }).then(
+        (data) => {
+          DEBUG = data.debug === true;
+        },
+        () => {}
+      );
+    }
+  } catch {}
 })();

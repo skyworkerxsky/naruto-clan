@@ -1,14 +1,19 @@
+// DEFAULTS chrome.storage.local — синхронизировать в site.js, player.js, popup.js, background.js
 (() => {
   // Parent page: keep «Плеер 2» + force iframe translation=1 (2x2 on Alloha/online-serial)
   const TRANSLATION_ID = '1';
   const TAB2_SELECTORS = ['a[href="#tab2"]', '#ui-id-2', '.ui-tabs-nav a[data-voice="2"]'];
-  const LOG = (...args) => console.debug('[2x2-voice:site]', ...args);
+  let DEBUG = false;
+  const LOG = (...args) => { if (DEBUG) console.debug('[2x2-voice:site]', ...args); };
 
   let extensionOn = true;
   let enabled = true;
   let settingsReady = false;
   let observer = null;
+  let observerTimer = null;
   const timers = [];
+  // Один раз пропатченный iframe больше не трогаем — иначе смена src перезагружает плеер
+  const patchedIframes = new WeakSet();
 
   function ensureVoiceCookie() {
     if (!/(?:^|;\s*)voice=2(?:;|$)/.test(document.cookie)) {
@@ -55,15 +60,13 @@
         return null;
       }
       let changed = false;
-      const translation = u.searchParams.get('translation');
+      // Выключение расширения «мягкое»: уже играющий iframe не перезагружаем
       if (voiceOn()) {
+        const translation = u.searchParams.get('translation');
         if (translation !== TRANSLATION_ID) {
           u.searchParams.set('translation', TRANSLATION_ID);
           changed = true;
         }
-      } else if (translation != null) {
-        u.searchParams.delete('translation');
-        changed = true;
       }
 
       if (u.searchParams.has('autoplay')) {
@@ -86,6 +89,8 @@
     let patched = 0;
 
     for (const iframe of playerFrames()) {
+      if (patchedIframes.has(iframe)) continue;
+
       const src = iframe.getAttribute('src') || '';
       const dataSrc = iframe.getAttribute('data-lzl-src') || '';
 
@@ -102,15 +107,17 @@
         }
       }
 
-      if (!voiceOn()) continue;
-
-      const live = iframe.getAttribute('src') || '';
-      const lazy = iframe.getAttribute('data-lzl-src') || '';
-      if (lazy.includes('online-serial.com') && (!live || live.startsWith('data:') || live === 'about:blank')) {
-        iframe.setAttribute('src', lazy);
-        patched++;
-        LOG('forced lazy src');
+      if (voiceOn()) {
+        const live = iframe.getAttribute('src') || '';
+        const lazy = iframe.getAttribute('data-lzl-src') || '';
+        if (lazy.includes('online-serial.com') && (!live || live.startsWith('data:') || live === 'about:blank')) {
+          iframe.setAttribute('src', lazy);
+          patched++;
+          LOG('forced lazy src');
+        }
       }
+
+      patchedIframes.add(iframe);
     }
 
     return patched;
@@ -192,6 +199,10 @@
 
   function disarmWatchOnly() {
     clearTimers();
+    if (observerTimer) {
+      clearTimeout(observerTimer);
+      observerTimer = null;
+    }
     observer?.disconnect();
     observer = null;
   }
@@ -203,8 +214,12 @@
 
     const root = document.querySelector('.tabss, .videos, #page, #page_inc') || document.body;
     observer = new MutationObserver(() => {
-      if (voiceOn()) activatePlayer2();
-      patchPlayer2Iframes();
+      if (observerTimer) return;
+      observerTimer = setTimeout(() => {
+        observerTimer = null;
+        if (voiceOn()) activatePlayer2();
+        patchPlayer2Iframes();
+      }, 150);
     });
     observer.observe(root, {
       childList: true,
@@ -215,6 +230,7 @@
   }
 
   function apply(data) {
+    DEBUG = data.debug === true;
     extensionOn = data.extensionOn !== false;
     enabled = data.enabled !== false;
     settingsReady = true;
@@ -222,12 +238,13 @@
     arm();
   }
 
-  const defaults = { extensionOn: true, enabled: true };
+  const defaults = { extensionOn: true, enabled: true, debug: false };
 
   chrome.storage.local.get(defaults).then(apply);
 
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || (!changes.extensionOn && !changes.enabled)) return;
+    if (area !== 'local' || (!changes.extensionOn && !changes.enabled && !changes.debug)) return;
+    if (changes.debug) DEBUG = changes.debug.newValue === true;
     chrome.storage.local.get(defaults).then(apply);
   });
 
