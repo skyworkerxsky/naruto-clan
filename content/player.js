@@ -1,8 +1,10 @@
+// DEFAULTS chrome.storage.local — синхронизировать в site.js, player.js, popup.js, background.js
 (() => {
   // Alloha / online-serial.com: [data-select^="translationType"] → button.select__drop-item
   // 2x2 = data-id="t1" (id_translation=1); default often «Дублированный» (t66)
   const TARGET = /^(?:2x2|2х2)$/i;
-  const LOG = (...args) => console.debug('[2x2-voice:player]', ...args);
+  let DEBUG = false;
+  const LOG = (...args) => { if (DEBUG) console.debug('[2x2-voice:player]', ...args); };
   const RETRY_MS = 350;
   const RETRY_FOR_MS = 20000;
 
@@ -11,6 +13,8 @@
   let settled = false;
   let interval = null;
   let obs = null;
+  // Пользователь вручную выбрал другую озвучку — не перебиваем его выбор
+  let manualVoiceOverride = false;
 
   function textOf(el) {
     return (el.textContent || '').replace(/\s+/g, ' ').trim();
@@ -45,8 +49,33 @@
     return !!(btn && btn.classList.contains('active'));
   }
 
+  // Отличаем ручной выбор пользователя от наших собственных кликов (isTrusted)
+  function setupManualOverrideListener() {
+    const root = translationRoot();
+    if (!root) return;
+    if (root.dataset.n2x2OverrideBound === '1') return;
+    root.dataset.n2x2OverrideBound = '1';
+
+    root.addEventListener(
+      'click',
+      (e) => {
+        if (!e.isTrusted) return; // наши клики игнорируем
+        const item = e.target.closest('button.select__drop-item');
+        if (!item || !root.contains(item)) return;
+        if (TARGET.test(textOf(item)) || item.getAttribute('data-id') === 't1') {
+          manualVoiceOverride = false;
+        } else {
+          manualVoiceOverride = true;
+          LOG('manual voice override:', textOf(item));
+        }
+      },
+      true
+    );
+  }
+
   function select2x2() {
     if (!enabled) return false;
+    if (manualVoiceOverride) return false;
 
     const root = translationRoot();
     if (!root) {
@@ -72,6 +101,7 @@
 
   function tick() {
     if (!enabled) return false;
+    setupManualOverrideListener();
     if (select2x2()) {
       if (Date.now() - startedAt > 1500) settled = true;
       return true;
@@ -131,8 +161,9 @@
     });
   }
 
-  function apply(next) {
-    const on = next !== false;
+  function apply(data) {
+    DEBUG = data.debug === true;
+    const on = voiceWanted(data);
     if (on) start();
     else {
       enabled = false;
@@ -159,7 +190,7 @@
     document.documentElement.dataset.n2x2AutoNext = on ? '1' : '0';
   }
 
-  const defaults = { extensionOn: true, enabled: true, skipIntro: true, skipCredits: true, autoNext: true };
+  const defaults = { extensionOn: true, enabled: true, skipIntro: true, skipCredits: true, autoNext: true, debug: false };
 
   let rememberedEpisode = '';
 
@@ -185,9 +216,17 @@
   setInterval(rememberPlaying, 1000);
 
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local' || (!changes.extensionOn && !changes.enabled && !changes.skipIntro && !changes.skipCredits && !changes.autoNext)) return;
+    if (
+      area !== 'local' ||
+      (!changes.extensionOn && !changes.enabled && !changes.skipIntro && !changes.skipCredits && !changes.autoNext && !changes.debug)
+    ) {
+      return;
+    }
+    // Переключение тогла «Озвучка 2x2» возвращает управление расширению
+    if (changes.enabled) manualVoiceOverride = false;
+    if (changes.debug) DEBUG = changes.debug.newValue === true;
     chrome.storage.local.get(defaults).then((data) => {
-      apply(voiceWanted(data));
+      apply(data);
       publishSkip(data);
       publishSkipCredits(data);
       publishAutoNext(data);
@@ -195,7 +234,7 @@
   });
 
   chrome.storage.local.get(defaults).then((data) => {
-    apply(voiceWanted(data));
+    apply(data);
     publishSkip(data);
     publishSkipCredits(data);
     publishAutoNext(data);

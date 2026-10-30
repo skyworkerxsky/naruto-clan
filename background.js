@@ -1,3 +1,4 @@
+// DEFAULTS chrome.storage.local — синхронизировать в site.js, player.js, popup.js, background.js
 const ORANGE = '#ff7a18';
 const ASH = '#5c6573';
 
